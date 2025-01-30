@@ -1,0 +1,38 @@
+#!/usr/bin/env php
+<?php
+
+use Peek\Client;
+use Peek\Commands\PeekCommand;
+use Peek\Commands\InitCommand;
+use Peek\Config;
+use Symfony\Component\Console\Application;
+
+foreach ([
+             dirname(__DIR__, 4) . '/vendor/autoload.php',
+             dirname(__DIR__) . '/vendor/autoload.php',
+         ] as $autoloadPath) {
+    if (file_exists($autoloadPath)) {
+        include_once $autoloadPath;
+        break;
+    }
+}
+
+$application = new Application('peek', '1.0.0');
+
+$application->add(new InitCommand());
+
+$clients = Config::getAllClients();
+$selectedClient = null;
+
+foreach ($clients as $clientName => $clientData) {
+    if (!empty($clientData['api_key']) && !empty($clientData['url'])) {
+        $selectedClient = new Client($clientData['api_key'], $clientData['url']);
+        break;
+    }
+}
+
+if ($selectedClient) {
+    $application->add(new PeekCommand($selectedClient));
+}
+
+$application->run();
