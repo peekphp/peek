@@ -29,13 +29,13 @@ composer require peekphp/peek
 ### Analyze a PHP File
 Run the `peek` command to analyze an entire PHP file:
 ```bash
-php vendor/bin/peek peek path/to/your/file.php
+vendor/bin/peek peek path/to/your/file.php
 ```
 
 ### Analyze a Code Snippet
 Specify a line range within a file to analyze just a part of your code:
 ```bash
-php vendor/bin/peek peek path/to/your/file.php --lines=10:20
+vendor/bin/peek peek path/to/your/file.php --lines=10:20
 ```
 
 ### Example Output:
