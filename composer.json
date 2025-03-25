@@ -1,6 +1,6 @@
 {
     "name": "peekphp/peek",
-    "description": "A package to ask DeepSeek to give detailed answer of improvements on PHP files/snippets.",
+    "description": "A package to ask any AI Client to give detailed answer of improvements on PHP files/snippets.",
     "keywords": ["php", "boilerplate", "package"],
     "license": "MIT",
     "bin": [
