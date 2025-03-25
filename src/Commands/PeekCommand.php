@@ -3,7 +3,6 @@
 namespace Peek\Commands;
 
 use Peek\Client;
-use Peek\Config;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,11 +18,10 @@ class PeekCommand extends Command
 {
     private ?Client $client = null;
 
-    public function __construct()
+    public function __construct(?Client $client = null)
     {
         parent::__construct();
-
-        $this->client = $this->initializeClient();
+        $this->client = $client ?? $this->createClientFromConfig();
     }
 
     protected function configure(): void
@@ -92,23 +90,6 @@ class PeekCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function initializeClient(): ?Client
-    {
-        $clients = Config::getAllClients();
-
-        if ($clients === []) {
-            return null;
-        }
-
-        foreach ($clients as $clientData) {
-            if (! empty($clientData['api_key']) && ! empty($clientData['url']) && ! empty($clientData['model'])) {
-                return new Client($clientData['api_key'], $clientData['url'], $clientData['model']);
-            }
-        }
-
-        return null;
-    }
-
     private function extractSnippet(array $fileContent, string $linesOption): string
     {
         if (in_array(preg_match('/^(\d+):(\d+)$/', $linesOption, $matches), [0, false], true)) {
@@ -128,7 +109,7 @@ class PeekCommand extends Command
     {
         $formattedContent = html_entity_decode($response, ENT_QUOTES, 'UTF-8');
         $formattedContent = preg_replace_callback('/```php\n(.*?)\n```/s',
-            fn (array $matches): string => '<fg=yellow>'.trim((string) $matches[1]).'</fg=yellow>',
+            fn (array $matches): string => '<fg=yellow>'.trim($matches[1]).'</fg=yellow>',
             $formattedContent
         );
 
@@ -143,5 +124,30 @@ class PeekCommand extends Command
                 $output->writeln(trim($line));
             }
         }
+    }
+
+    private function createClientFromConfig(): ?Client
+    {
+        if (! file_exists('peek.json')) {
+            return null;
+        }
+
+        $config = json_decode(file_get_contents('peek.json'), true);
+
+        if (! isset($config['clients']) || empty($config['clients'])) {
+            return null;
+        }
+
+        foreach ($config['clients'] as $clientConfig) {
+            if (! empty($clientConfig['api_key']) && ! empty($clientConfig['url']) && ! empty($clientConfig['model'])) {
+                return new Client(
+                    $clientConfig['api_key'],
+                    $clientConfig['url'],
+                    $clientConfig['model']
+                );
+            }
+        }
+
+        return null;
     }
 }

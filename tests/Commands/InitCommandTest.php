@@ -22,7 +22,7 @@ it('will pass and create a peek.json file when no peek.json exists', function ()
         'DeepSeek',                    // Select DeepSeek as the AI client
         'https://api.deepseek.com',    // API URL
         'test-api-key',                // API Key
-        'default'                      // Model
+        'default',                      // Model
     ]);
 
     $commandTester->execute([]);
@@ -44,9 +44,9 @@ it('will fail when trying to reinitialize an existing client', function (): void
             'deepseek' => [
                 'api_key' => 'existing-key',
                 'url' => 'https://api.deepseek.com',
-                'model' => 'default'
-            ]
-        ]
+                'model' => 'default',
+            ],
+        ],
     ], JSON_PRETTY_PRINT));
 
     $application = new Application;
@@ -73,9 +73,9 @@ it('will allow adding a new AI client alongside existing ones', function (): voi
             'deepseek' => [
                 'api_key' => 'existing-key',
                 'url' => 'https://api.deepseek.com',
-                'model' => 'default'
-            ]
-        ]
+                'model' => 'default',
+            ],
+        ],
     ], JSON_PRETTY_PRINT));
 
     $application = new Application;
@@ -85,10 +85,10 @@ it('will allow adding a new AI client alongside existing ones', function (): voi
     $commandTester = new CommandTester($command);
 
     $commandTester->setInputs([
-        'OpenAI',                     // Select OpenAI as the new client
+        'OpenAI',                      // Select OpenAI as the new client
         'https://api.openai.com',     // API URL
         'new-api-key',                // API Key
-        'default'                     // Model
+        'default',                     // Model
     ]);
 
     $commandTester->execute([]);

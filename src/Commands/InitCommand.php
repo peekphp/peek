@@ -36,14 +36,16 @@ class InitCommand extends Command
             $question = new Question('<info>Enter a custom AI client name:</info> ');
             $clientName = strtolower(trim($helper->ask($input, $output, $question)));
 
-            if (!$clientName) {
+            if ($clientName === '' || $clientName === '0') {
                 $output->writeln('<error>No client name entered. Initialization aborted.</error>');
+
                 return Command::FAILURE;
             }
         }
 
         if (isset($existingClients[$clientName])) {
             $output->writeln("<error>$clientName client already exists in the configuration.</error>");
+
             return Command::FAILURE;
         }
 
@@ -60,16 +62,18 @@ class InitCommand extends Command
         $question = new Question("<info>Enter your API key for $clientName:</info> ");
         $apiKey = trim($helper->ask($input, $output, $question));
 
-        if (!$apiKey) {
+        if ($apiKey === '' || $apiKey === '0') {
             $output->writeln("<error>No API key entered for $clientName. Initialization aborted.</error>");
+
             return Command::FAILURE;
         }
 
         $question = new Question("<info>Enter the model for $clientName:</info> ");
         $model = trim($helper->ask($input, $output, $question));
 
-        if (!$model) {
+        if ($model === '' || $model === '0') {
             $output->writeln("<error>No model entered for $clientName. Initialization aborted.</error>");
+
             return Command::FAILURE;
         }
 

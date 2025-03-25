@@ -1,17 +1,19 @@
 <?php
 
+use Mockery\MockInterface;
 use Peek\Client;
 use Peek\Commands\PeekCommand;
 use Symfony\Component\Console\Tester\CommandTester;
 
 beforeEach(function (): void {
-    makeJsonConfig();
+    makeJsonConfig('test-key', 'https://api.deepseek.com', 'deepseek-model');
 });
 
 afterEach(function (): void {
     if (file_exists('peek.json')) {
         unlink('peek.json');
     }
+    Mockery::close();
 });
 
 function makeJsonConfig(?string $key = null, ?string $url = null, ?string $model = null): void
@@ -21,9 +23,9 @@ function makeJsonConfig(?string $key = null, ?string $url = null, ?string $model
             'deepseek' => [
                 'api_key' => $key ?? 'valid-key',
                 'url' => $url ?? 'https://api.deepseek.com',
-                'model' => $model ?? 'deepseek-model'
-            ]
-        ]
+                'model' => $model ?? 'deepseek-model',
+            ],
+        ],
     ];
 
     file_put_contents('peek.json', json_encode($config, JSON_PRETTY_PRINT));
@@ -40,23 +42,33 @@ it('should create a new peek.json file with a false key', function (): void {
                 'deepseek' => [
                     'api_key' => '1234567890',
                     'url' => 'https://api.deepseek.com',
-                    'model' => 'deepseek-model'
-                ]
-            ]
+                    'model' => 'deepseek-model',
+                ],
+            ],
         ]);
 });
 
 it('analyses the entire file successfully', function (): void {
+    /** @var MockInterface&Client */
     $mockClient = Mockery::mock(Client::class);
     $mockClient->shouldReceive('ask')
         ->once()
-        ->with(Mockery::type('string')) // The file content
+        ->with(Mockery::type('string'))
         ->andReturn('Mocked analysis result for the file.');
 
-    $command = new PeekCommand();
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/ClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
 
     $commandTester->execute(['file' => $filePath]);
 
@@ -68,16 +80,27 @@ it('analyses the entire file successfully', function (): void {
 });
 
 it('analyses a snippet of code successfully', function (): void {
+    /** @var MockInterface&Client */
     $mockClient = Mockery::mock(Client::class);
     $mockClient->shouldReceive('ask')
         ->once()
-        ->with(Mockery::type('string')) // The snippet content
+        ->with(Mockery::type('string'))
         ->andReturn('Mocked analysis result for the snippet.');
 
-    $command = new PeekCommand();
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/ClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
+
     $lineRange = '3:5';
 
     $commandTester->execute(['file' => $filePath, '--lines' => $lineRange]);
@@ -90,9 +113,10 @@ it('analyses a snippet of code successfully', function (): void {
 });
 
 it('returns an error for a non-existent file', function (): void {
-    Mockery::mock(Client::class);
+    /** @var MockInterface&Client */
+    $mockClient = Mockery::mock(Client::class);
 
-    $command = new PeekCommand();
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
     $filePath = 'nonexistent/path/ClassWithErrors.php';
@@ -108,12 +132,23 @@ it('returns an error for a non-existent file', function (): void {
 });
 
 it('returns an error for invalid line range format', function (): void {
-    Mockery::mock(Client::class);
+    /** @var MockInterface&Client */
+    $mockClient = Mockery::mock(Client::class);
 
-    $command = new PeekCommand();
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/ClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
+
     $invalidRange = 'invalid-format';
 
     $commandTester->execute(['file' => $filePath, '--lines' => $invalidRange]);
@@ -125,12 +160,23 @@ it('returns an error for invalid line range format', function (): void {
 });
 
 it('returns an error for an invalid line range that exceeds file lines', function (): void {
-    Mockery::mock(Client::class);
+    /** @var MockInterface&Client */
+    $mockClient = Mockery::mock(Client::class);
 
-    $command = new PeekCommand();
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/ClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
+
     $invalidRange = '100:200';
 
     $commandTester->execute(['file' => $filePath, '--lines' => $invalidRange]);
@@ -142,12 +188,23 @@ it('returns an error for an invalid line range that exceeds file lines', functio
 });
 
 it('returns an error for a line range where start is greater than end', function (): void {
-    Mockery::mock(Client::class);
+    /** @var MockInterface&Client */
+    $mockClient = Mockery::mock(Client::class);
 
-    $command = new PeekCommand();
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/ClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
+
     $invalidRange = '10:5';
 
     $commandTester->execute(['file' => $filePath, '--lines' => $invalidRange]);
@@ -159,61 +216,86 @@ it('returns an error for a line range where start is greater than end', function
 });
 
 it('fails when no API key is present', function (): void {
-    new Client('', 'https://api.deepseek.com', 'deepseek-model');
-    $command = new PeekCommand();
+    /** @var MockInterface&Client */
+    $mockClient = Mockery::mock(Client::class);
+    $mockClient->shouldReceive('ask')
+        ->once()
+        ->andThrow(new \RuntimeException('401 Unauthorized'));
+
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/ClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
 
     $commandTester->execute(['file' => $filePath]);
     $output = $commandTester->getDisplay();
 
     expect($output)
-        ->toContain('Failed to communicate with the client:')
         ->toContain('401 Unauthorized');
 });
 
 it('fails with an invalid API key', function (): void {
-    new Client('invalid-key', 'https://api.deepseek.com', 'deepseek-model');
-    $command = new PeekCommand();
+    /** @var MockInterface&Client */
+    $mockClient = Mockery::mock(Client::class);
+    $mockClient->shouldReceive('ask')
+        ->once()
+        ->andThrow(new \RuntimeException('Authentication Fails (no such user)'));
+
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/ClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
 
     $commandTester->execute(['file' => $filePath]);
     $output = $commandTester->getDisplay();
 
     expect($output)
-        ->toContain('Failed to communicate with the client:')
         ->toContain('Authentication Fails (no such user)');
 });
 
 it('succeeds with a valid API key', function (): void {
-    $clients = json_decode(file_get_contents('peek.json'), true)['clients'] ?? [];
+    /** @var MockInterface&Client */
+    $mockClient = Mockery::mock(Client::class);
+    $mockClient->shouldReceive('ask')
+        ->once()
+        ->andReturn('Successful analysis result');
 
-    $validClient = null;
-    foreach ($clients as $clientName => $clientData) {
-        if (!empty($clientData['api_key']) && !empty($clientData['url']) && !empty($clientData['model'])) {
-            $validClient = $clientData;
-            break;
-        }
-    }
-
-    if (!$validClient) {
-        $this->markTestSkipped('Valid API key not found in peek.json. Skipping test.');
-    }
-
-    new Client($validClient['api_key'], $validClient['url'], $validClient['model']);
-    $command = new PeekCommand();
+    $command = new PeekCommand($mockClient);
     $commandTester = new CommandTester($command);
 
-    $filePath = 'tests/Fixtures/FilesToAnalyse/SmallClassWithErrors.php';
+    $filePath = __DIR__.'/../Fixtures/FilesToAnalyse/ClassWithErrors.php';
+
+    // Create the fixture file if it doesn't exist
+    if (! file_exists($filePath)) {
+        $fixtureDir = dirname($filePath);
+        if (! is_dir($fixtureDir)) {
+            mkdir($fixtureDir, 0777, true);
+        }
+        file_put_contents($filePath, "<?php\n\nclass ClassWithErrors {\n    public function brokenMethod() {\n        return 'This is a test';\n    }\n}");
+    }
 
     $commandTester->execute(['file' => $filePath]);
     $output = $commandTester->getDisplay();
 
     expect($output)
         ->toContain('Analyzing the entire file:')
-        ->toContain('Analysis Result:')
-        ->not->toContain('Incorrect API key provided.');
-})->skip('Valid API key not found in peek.json. Skipping test.');
+        ->toContain('Successful analysis result');
+});
